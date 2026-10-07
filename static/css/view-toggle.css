@@ -1,0 +1,104 @@
+#viewToggle {
+  position: fixed; right: 20px; bottom: 20px; z-index: 9999;
+  padding: 10px 16px; border: none; border-radius: 8px;
+  color: #fff; font-weight: 600; cursor: pointer;
+  background: linear-gradient(90deg, #ff0844, #8a2be2);
+  box-shadow: 0 4px 14px rgba(0,0,0,.5);
+}
+/* Mobile mode: ALL rules must be scoped under html.mobile-view so desktop mode is unaffected */
+html.mobile-view body { max-width: 420px; margin: 0 auto; min-height: 100vh;
+  border-left: 1px solid #333; border-right: 1px solid #333; overflow-x: hidden; }
+
+/* Top navbar horizontally scrollable bar */
+html.mobile-view nav {
+  padding: 0.6rem 0.8rem;
+  height: auto;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+html.mobile-view .nav-links {
+  display: flex;
+  overflow-x: auto;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 0.4rem;
+  padding-bottom: 4px;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+html.mobile-view .nav-link {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+html.mobile-view .nav-user-cluster {
+  justify-content: space-between;
+  padding-left: 0;
+  border-left: none;
+  margin-left: 0;
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+
+/* Hero & City Search Input + ANALYSE button stack vertically and full width */
+html.mobile-view .hero {
+  padding: 1.5rem 1rem;
+}
+html.mobile-view .hero h1 {
+  font-size: 1.6rem;
+}
+html.mobile-view .hero p {
+  font-size: 0.85rem;
+}
+html.mobile-view .search-row {
+  flex-direction: column;
+  width: 100%;
+  gap: 0.6rem;
+}
+html.mobile-view .combobox-wrap {
+  width: 100%;
+}
+html.mobile-view .search-row .btn,
+html.mobile-view #searchBtn {
+  width: 100%;
+}
+
+/* Dashboard cards stack in ONE column */
+html.mobile-view .grid-2,
+html.mobile-view .grid-3 {
+  grid-template-columns: 1fr !important;
+}
+html.mobile-view .escape-grid {
+  grid-template-columns: 1fr !important;
+}
+
+/* Headings smaller font sizes, images/canvas/charts max-width:100% */
+html.mobile-view h1 { font-size: 1.6rem; }
+html.mobile-view h2 { font-size: 1.3rem; }
+html.mobile-view h3 { font-size: 1.1rem; }
+html.mobile-view h4 { font-size: 1rem; }
+html.mobile-view .section-title { font-size: 1rem; }
+html.mobile-view .card-header h3 { font-size: 0.95rem; }
+html.mobile-view img,
+html.mobile-view canvas,
+html.mobile-view .mood-img,
+html.mobile-view .chart-img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+html.mobile-view .container {
+  padding: 1rem 0.8rem;
+}
+html.mobile-view .auth-box {
+  padding: 1.5rem 1rem;
+  max-width: 100%;
+}
+html.mobile-view .aqi-num {
+  font-size: 3.2rem;
+}
+html.mobile-view .hist-table {
+  font-size: 0.8rem;
+  display: block;
+  overflow-x: auto;
+}

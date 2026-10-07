@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AeroSense — Sign Up</title>
+<link rel="stylesheet" href="/static/theme.css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/view-toggle.css') }}">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-box">
+      <div class="logo">Aero<span>Sense</span></div>
+      <p class="subtitle">Register New Operator Account</p>
+
+      {% if error %}
+      <div class="error-msg">⚠️ {{ error }}</div>
+      {% endif %}
+
+      <form method="POST" action="/signup">
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required autofocus placeholder="Choose a username"/>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required minlength="6" placeholder="Min. 6 characters"/>
+        </div>
+        <div class="field">
+          <label for="confirm">Confirm Password</label>
+          <input type="password" id="confirm" name="confirm" required minlength="6" placeholder="Confirm your password"/>
+        </div>
+        <button type="submit" class="btn" style="width:100%;">Create System Account</button>
+      </form>
+
+      <div class="switch-link">
+        Already registered? <a href="/login">Log in here</a>
+      </div>
+    </div>
+  </div>
+  <button id="viewToggle" type="button" aria-label="Switch view">📱 Mobile view</button>
+  <script src="{{ url_for('static', filename='js/view-toggle.js') }}"></script>
+</body>
+</html>

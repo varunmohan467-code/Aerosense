@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>AeroSense — Air Quality Control Panel</title>
+  <link rel="stylesheet" href="/static/theme.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/view-toggle.css') }}">
+</head>
+
+<body>
+
+  <!-- TOP NAV / CONTROL PANEL HEADER -->
+  <nav>
+    <div class="logo">
+      <span class="ac-slash"><span></span><span></span><span></span></span>
+      Aero<span>Sense</span>
+    </div>
+    <div class="nav-links">
+      <button class="nav-link active" onclick="scrollToSection(null, this)">
+        <span>📊</span> Dashboard
+      </button>
+      <button class="nav-link" onclick="scrollToSection('predictionSection', this)">
+        <span>🔮</span> Prediction
+      </button>
+      <button class="nav-link" onclick="scrollToSection('healthSection', this)">
+        <span>🏃</span> Health
+      </button>
+      <button class="nav-link" onclick="scrollToSection('escapeSection', this)">
+        <span>🗺️</span> Escape Map
+      </button>
+      <button class="nav-link" onclick="scrollToSection('rainSection', this)">
+        <span>🌧️</span> Rain vs AQI
+      </button>
+      <button class="nav-link" onclick="scrollToSection('spikeSection', this)">
+        <span>⚠️</span> Spikes
+      </button>
+      <button class="nav-link" onclick="scrollToSection('historySection', this)">
+        <span>📋</span> History
+      </button>
+    </div>
+    <div class="nav-user-cluster">
+      <span class="nav-user"><span class="nav-user-icon">👤</span> {{ username }}</span>
+      <a href="/logout" class="nav-logout" title="Log Out">🚪</a>
+    </div>
+  </nav>
+
+  <!-- HERO SEARCH -->
+  <div class="hero">
+    <h1>Aero<span>Sense</span> Control Panel</h1>
+    <p>Intelligent Real-Time Air Quality Telemetry & Predictive Analytics</p>
+    <div class="search-row">
+      <div class="combobox-wrap" id="comboboxWrap">
+        <input type="text" id="cityInput" placeholder="Loading monitored city list..." autocomplete="off" disabled
+          onfocus="openDropdown()" oninput="filterCities()" onkeydown="handleComboboxKey(event)" />
+        <div class="combobox-dropdown hidden" id="comboboxDropdown">
+          <div class="combobox-status" id="comboboxStatus">
+            <div class="spinner inline-spinner"></div>
+            <span>Loading monitored Indian cities...</span>
+          </div>
+          <div class="combobox-list" id="comboboxList"></div>
+        </div>
+      </div>
+      <button class="btn" id="searchBtn" onclick="doSearch()" disabled>
+        <span>⚡</span> Analyse
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <div class="container">
+
+    <!-- ERROR BANNER -->
+    <div id="errorBanner" class="hidden"
+      style="background:rgba(232,17,45,0.15);border:1px solid var(--accent-red);border-left:4px solid var(--accent-red);color:var(--text-primary);padding:1rem 1.2rem;border-radius:8px;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 16px rgba(0,0,0,0.5);">
+      <div style="display:flex;align-items:center;gap:0.8rem;">
+        <span style="font-size:1.4rem;">⚠️</span>
+        <span id="errorBannerText" style="font-size:0.92rem;font-weight:500;"></span>
+      </div>
+      <button onclick="document.getElementById('errorBanner').classList.add('hidden')" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:1.1rem;padding:0.2rem 0.5rem;" title="Dismiss">✕</button>
+    </div>
+
+    <!-- LOADER -->
+    <div class="loader hidden" id="loader">
+      <div class="spinner"></div>
+      <span>Fetching live telemetry data for target location...</span>
+    </div>
+
+    <!-- INITIAL PLACEHOLDER -->
+    <div class="placeholder" id="placeholder">
+      <div class="big">🌫️</div>
+      <p>Select or type a city name above to initialize live AQI mood board, ML prediction models, WHO health telemetry, and escape routes.</p>
+    </div>
+
+    <!-- RESULTS (hidden until search) -->
+    <div id="results" class="hidden">
+
+      <div class="section-title" id="cityLabel">
+        <span class="ac-slash"><span></span><span></span><span></span></span>
+        — Target Telemetry Dashboard
+      </div>
+
+      <!-- PAIRED PANEL GROUP 1: AQI + Mood Board -->
+      <div class="grid-2">
+        <!-- AQI Card -->
+        <div class="card">
+          <div class="card-header">
+            <h3><span class="ac-slash"><span></span><span></span><span></span></span>📊 Current AQI</h3>
+            <span id="aqiTimestamp" style="color:var(--text-secondary);font-size:0.8rem;font-family:'Rajdhani',sans-serif;"></span>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;">
+              <div>
+                <div class="aqi-num" id="aqiNum">--</div>
+                <div class="aqi-label" id="aqiLabel">--</div>
+                <div class="aqi-city" id="aqiCity">--</div>
+              </div>
+            </div>
+            
+            <div class="stat-row">
+              <span class="stat-label">AQI Scale Bar</span>
+              <span class="stat-value">0 - 500</span>
+            </div>
+            <div class="aqi-bar-wrap">
+              <div class="aqi-bar" id="aqiBar" style="width:0%;background:var(--accent-red);"></div>
+            </div>
+
+            <div style="margin-top:1.2rem;" id="pollutants">
+              <div class="stat-row">
+                <span class="stat-label">PM2.5 Concentration</span>
+                <span class="stat-value" id="pm25">--</span>
+              </div>
+              <div class="metric-bar-track">
+                <div class="metric-bar-fill" style="width:65%;"></div>
+              </div>
+
+              <div class="stat-row">
+                <span class="stat-label">PM10 Concentration</span>
+                <span class="stat-value" id="pm10">--</span>
+              </div>
+              <div class="metric-bar-track">
+                <div class="metric-bar-fill" style="width:45%;"></div>
+              </div>
+
+              <div class="stat-row">
+                <span class="stat-label">Nitrogen Dioxide (NO2)</span>
+                <span class="stat-value" id="no2">--</span>
+              </div>
+              <div class="metric-bar-track">
+                <div class="metric-bar-fill" style="width:30%;"></div>
+              </div>
+
+              <div class="stat-row">
+                <span class="stat-label">Ozone (O3)</span>
+                <span class="stat-value" id="o3">--</span>
+              </div>
+              <div class="metric-bar-track">
+                <div class="metric-bar-fill" style="width:25%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mood Board Card -->
+        <div class="card">
+          <div class="card-header">
+            <h3><span class="ac-slash"><span></span><span></span><span></span></span>🎨 AQI Mood Board</h3>
+            <span style="color:var(--text-secondary);font-size:0.8rem;font-family:'Rajdhani',sans-serif;">Generative Generative Art</span>
+          </div>
+          <div class="card-body" style="padding:0.8rem;">
+            <img class="mood-img" id="moodImg" src="" alt="Mood Board" />
+          </div>
+        </div>
+      </div>
+
+      <!-- PAIRED PANEL GROUP 2: Health Advice + Prediction -->
+      <div class="grid-2">
+        <!-- Health Advice Card -->
+        <div class="card" id="healthSection">
+          <div class="card-header">
+            <h3><span class="ac-slash"><span></span><span></span><span></span></span>🏃 Health Advice</h3>
+            <span style="color:var(--text-secondary);font-size:0.8rem;font-family:'Rajdhani',sans-serif;">WHO Exposure Guidelines</span>
+          </div>
+          <div class="card-body">
+            <div class="health-row">
+              <select id="ageGroup" onchange="updateHealth()">
+                <option value="adult">Adult</option>
+                <option value="child">Child</option>
+                <option value="senior">Senior</option>
+              </select>
+              <select id="condition" onchange="updateHealth()">
+                <option value="healthy">Healthy</option>
+                <option value="asthma">Asthma</option>
+                <option value="heart">Heart Condition</option>
+              </select>
+            </div>
+            <div class="health-result" id="healthResult">
+              <div class="time" id="safeTime">--</div>
+              <div class="sublabel">Recommended Max Outdoor Exposure</div>
+            </div>
+
+            <div style="margin-top:1.2rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.6rem;">
+              <div style="background:#141418;border:1px solid var(--border);border-radius:6px;padding:0.6rem;text-align:center;">
+                <div style="font-size:0.75rem;color:var(--text-secondary);">Adult</div>
+                <div style="font-weight:700;font-size:1rem;font-family:'Rajdhani',sans-serif;" id="adultTime">--</div>
+              </div>
+              <div style="background:#141418;border:1px solid var(--border);border-radius:6px;padding:0.6rem;text-align:center;">
+                <div style="font-size:0.75rem;color:var(--text-secondary);">Child</div>
+                <div style="font-weight:700;font-size:1rem;font-family:'Rajdhani',sans-serif;" id="childTime">--</div>
+              </div>
+              <div style="background:#141418;border:1px solid var(--border);border-radius:6px;padding:0.6rem;text-align:center;">
+                <div style="font-size:0.75rem;color:var(--text-secondary);">Senior</div>
+                <div style="font-weight:700;font-size:1rem;font-family:'Rajdhani',sans-serif;" id="seniorTime">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prediction Card -->
+        <div class="card" id="predictionSection">
+          <div class="card-header">
+            <h3><span class="ac-slash"><span></span><span></span><span></span></span>🔮 AQI Tomorrow Predictor</h3>
+            <span style="color:var(--text-secondary);font-size:0.8rem;font-family:'Rajdhani',sans-serif;">LinearRegression · scikit-learn</span>
+          </div>
+          <div class="card-body">
+            <div class="api-key-banner hidden" id="predApiKeyBanner">
+              <span class="banner-icon">🔑</span>
+              <span id="predApiKeyBannerText">API Key Required</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+              <div>
+                <div style="font-size:2.8rem;font-weight:700;font-family:'Rajdhani',sans-serif;line-height:1;" id="predNum">--</div>
+                <div style="font-size:0.9rem;font-weight:700;font-family:'Rajdhani',sans-serif;" id="predLabel">--</div>
+              </div>
+              <div style="flex:1;">
+                <div class="stat-row">
+                  <span class="stat-label">Model Confidence</span>
+                  <span class="stat-value" id="confLabel">--</span>
+                </div>
+                <div class="metric-bar-track">
+                  <div id="confBar" class="metric-bar-fill" style="width:0%;"></div>
+                </div>
+              </div>
+            </div>
+            <img class="chart-img" id="predChart" src="" alt="Prediction Chart" />
+            <div class="advice-box" id="predAdvice"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAIRED PANEL GROUP 3: Rain Correlator + Spike Detector -->
+      <div class="grid-2">
+        <!-- Rain Correlator Card -->
+        <div class="card" id="rainSection">
+          <div class="card-header">
+            <h3><span class="ac-slash"><span></span><span></span><span></span></span>🌧️ Rain vs AQI Correlator</h3>
+            <span style="color:var(--text-secondary);font-size:0.8rem;font-family:'Rajdhani',sans-serif;">OpenWeatherMap · Pearson r</span>
+          </div>
+          <div class="card-body">
+            <div class="api-key-banner hidden" id="rainApiKeyBanner">
+              <span class="banner-icon">🔑</span>
+              <span id="rainApiKeyBannerText">API Key Required</span>
+            </div>
+            <img class="chart-img" id="rainChart" src="" alt="Rain Chart" />
+            <div class="insight-box" id="rainInsight"></div>
+          </div>
+        </div>
+
+        <!-- Spike Detector Card -->
+        <div class="card" id="spikeSection">
+          <div class="card-header">
+            <h3><span class="ac-slash"><span></span><span></span><span></span></span>⚠️ AQI Spike Detector</h3>
+            <span style="color:var(--text-secondary);font-size:0.8rem;font-family:'Rajdhani',sans-serif;">IsolationForest · scikit-learn</span>
+          </div>
+          <div class="card-body">
+            <div class="api-key-banner hidden" id="spikeApiKeyBanner">
+              <span class="banner-icon">🔑</span>
+              <span id="spikeApiKeyBannerText">API Key Required</span>
+            </div>
+            <img class="chart-img" id="spikeChart" src="" alt="Spike Detection Chart" />
+            <div class="insight-box" id="spikeAlert"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAIRED PANEL GROUP 4: Clean Escape + Search History -->
+      <div class="grid-2">
+        <!-- Clean Escape Finder Card -->
+        <div class="card" id="escapeSection">
+          <div class="card-header">
+            <h3><span class="ac-slash"><span></span><span></span><span></span></span>🗺️ Clean Escape Finder</h3>
+            <span style="color:var(--text-secondary);font-size:0.8rem;font-family:'Rajdhani',sans-serif;">Geodesic Distance Filter</span>
+          </div>
+          <div class="card-body">
+            <div class="escape-grid" id="escapeGrid"></div>
+          </div>
+        </div>
+
+        <!-- Search History Card -->
+        <div class="card" id="historySection">
+          <div class="card-header">
+            <h3><span class="ac-slash"><span></span><span></span><span></span></span>📋 Search History</h3>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <table class="hist-table">
+              <thead>
+                <tr>
+                  <th>City</th>
+                  <th>AQI</th>
+                  <th>Status</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="histBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /results -->
+  </div><!-- /container -->
+
+  <!-- FOOTER -->
+  <footer>
+    <p>AeroSense — Intelligent Air Quality Monitoring · Live Telemetry API Integration</p>
+  </footer>
+
+  <script>
+    let safeData = {};
+    let currentAqi = 0;
+    let allCities = [];
+    let filteredCities = [];
+    let selectedIndex = -1;
+
+    async function loadCities() {
+      const input = document.getElementById("cityInput");
+      const searchBtn = document.getElementById("searchBtn");
+      const dropdown = document.getElementById("comboboxDropdown");
+      const status = document.getElementById("comboboxStatus");
+
+      input.placeholder = "Loading city list...";
+      input.disabled = true;
+      searchBtn.disabled = true;
+
+      try {
+        const res = await fetch("/api/cities");
+        if (!res.ok) throw new Error("Could not load cities");
+        const data = await res.json();
+        allCities = data.cities || [];
+        filteredCities = [...allCities];
+
+        input.placeholder = "Search or select a city (e.g. Delhi, Mumbai...)";
+        input.disabled = false;
+        searchBtn.disabled = false;
+        status.classList.add("hidden");
+        renderComboboxList();
+      } catch (err) {
+        input.placeholder = "Could not load city list. Check internet.";
+        status.innerHTML = `
+      <span>Could not load city list. Check internet.</span>
+      <button class="combobox-retry" onclick="loadCities()">Retry</button>
+    `;
+        dropdown.classList.remove("hidden");
+      }
+    }
+
+    function renderComboboxList() {
+      const listEl = document.getElementById("comboboxList");
+      if (!filteredCities.length) {
+        listEl.innerHTML = `<div style="padding:0.8rem 1.1rem;color:var(--text-secondary);font-size:0.88rem;">No matching cities found in live network</div>`;
+        return;
+      }
+      listEl.innerHTML = filteredCities.map((city, idx) => `
+    <div class="combobox-item ${idx === selectedIndex ? 'active' : ''}" 
+         data-city="${city}" 
+         data-index="${idx}">
+      📍 ${city}
+    </div>
+  `).join("");
+    }
+
+    function openDropdown() {
+      document.getElementById("comboboxDropdown").classList.remove("hidden");
+      filterCities();
+    }
+
+    function filterCities() {
+      document.getElementById("errorBanner").classList.add("hidden");
+      const q = document.getElementById("cityInput").value.toLowerCase().trim();
+      filteredCities = allCities.filter(c => c.toLowerCase().includes(q));
+      selectedIndex = -1;
+      renderComboboxList();
+    }
+
+    function updateActiveHighlight() {
+      const listEl = document.getElementById("comboboxList");
+      if (!listEl) return;
+      Array.from(listEl.children).forEach((child, idx) => {
+        if (idx === selectedIndex) {
+          child.classList.add("active");
+        } else {
+          child.classList.remove("active");
+        }
+      });
+    }
+
+    function selectCity(city) {
+      document.getElementById("cityInput").value = city;
+      document.getElementById("comboboxDropdown").classList.add("hidden");
+      doSearch();
+    }
+
+    function handleComboboxKey(e) {
+      const dropdown = document.getElementById("comboboxDropdown");
+      if (dropdown.classList.contains("hidden")) {
+        if (e.key === "ArrowDown" || e.key === "Enter") {
+          openDropdown();
+          return;
+        }
+      }
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (filteredCities.length) {
+          selectedIndex = (selectedIndex + 1) % filteredCities.length;
+          updateActiveHighlight();
+          scrollToActiveItem();
+        }
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (filteredCities.length) {
+          selectedIndex = (selectedIndex - 1 + filteredCities.length) % filteredCities.length;
+          updateActiveHighlight();
+          scrollToActiveItem();
+        }
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < filteredCities.length) {
+          selectCity(filteredCities[selectedIndex]);
+        } else {
+          const val = document.getElementById("cityInput").value.trim();
+          if (val) {
+            dropdown.classList.add("hidden");
+            doSearch();
+          }
+        }
+      } else if (e.key === "Escape") {
+        dropdown.classList.add("hidden");
+      }
+    }
+
+    function scrollToActiveItem() {
+      const listEl = document.getElementById("comboboxList");
+      const activeEl = listEl.children[selectedIndex];
+      if (activeEl) {
+        activeEl.scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    document.addEventListener("click", (e) => {
+      const wrap = document.getElementById("comboboxWrap");
+      if (wrap && !wrap.contains(e.target)) {
+        document.getElementById("comboboxDropdown").classList.add("hidden");
+      }
+    });
+
+    // Event delegation for comboboxList mousedown & mouseover
+    window.addEventListener("DOMContentLoaded", () => {
+      loadCities();
+
+      const listEl = document.getElementById("comboboxList");
+      if (listEl) {
+        listEl.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          const item = e.target.closest(".combobox-item");
+          if (item && item.dataset.city) {
+            selectCity(item.dataset.city);
+          }
+        });
+
+        listEl.addEventListener("mouseover", (e) => {
+          const item = e.target.closest(".combobox-item");
+          if (item && item.dataset.index !== undefined) {
+            const newIdx = parseInt(item.dataset.index, 10);
+            if (newIdx !== selectedIndex) {
+              selectedIndex = newIdx;
+              updateActiveHighlight();
+            }
+          }
+        });
+      }
+    });
+
+    function scrollToSection(sectionId, btn) {
+      if (sectionId && document.getElementById("results").classList.contains("hidden")) {
+        alert("Search a city first — this section appears after you run a search.");
+        return;
+      }
+
+      document.querySelectorAll(".nav-link").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      if (sectionId === null) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    async function doSearch() {
+      const rawCity = document.getElementById("cityInput").value.trim();
+      if (!rawCity) {
+        document.getElementById("errorBannerText").textContent = "Please enter a city name.";
+        document.getElementById("errorBanner").classList.remove("hidden");
+        document.getElementById("placeholder").classList.remove("hidden");
+        document.getElementById("results").classList.add("hidden");
+        return;
+      }
+
+      // If monitored cities list has loaded, check if the entered city is present in the list
+      if (allCities && allCities.length > 0) {
+        const matched = allCities.find(c => c.toLowerCase() === rawCity.toLowerCase());
+        if (!matched) {
+          document.getElementById("errorBannerText").textContent = `"${rawCity}" is not in the monitored cities list. Please select a city from the list.`;
+          document.getElementById("errorBanner").classList.remove("hidden");
+          document.getElementById("placeholder").classList.remove("hidden");
+          document.getElementById("results").classList.add("hidden");
+          return;
+        }
+        // Normalize the text in the input to match the canonical city name in the list
+        document.getElementById("cityInput").value = matched;
+      }
+
+      const city = document.getElementById("cityInput").value.trim();
+
+      document.getElementById("errorBanner").classList.add("hidden");
+      document.getElementById("placeholder").classList.add("hidden");
+      document.getElementById("results").classList.add("hidden");
+      document.getElementById("loader").classList.remove("hidden");
+      document.getElementById("searchBtn").disabled = true;
+
+      try {
+        const res = await fetch("/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ city })
+        });
+        if (res.status === 401) { window.location.href = "/login"; return; }
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          const msg = errData.error || "Could not fetch live AQI data for this city.";
+          document.getElementById("errorBannerText").textContent = msg;
+          document.getElementById("errorBanner").classList.remove("hidden");
+          document.getElementById("placeholder").classList.remove("hidden");
+          document.getElementById("results").classList.add("hidden");
+          return;
+        }
+        const d = await res.json();
+        renderResults(d);
+        loadHistory();
+      } catch (e) {
+        document.getElementById("errorBannerText").textContent = "Live data unavailable right now. Please check your internet connection and try again.";
+        document.getElementById("errorBanner").classList.remove("hidden");
+        document.getElementById("placeholder").classList.remove("hidden");
+        document.getElementById("results").classList.add("hidden");
+      } finally {
+        document.getElementById("loader").classList.add("hidden");
+        document.getElementById("searchBtn").disabled = false;
+        document.getElementById("cityInput").disabled = false;
+      }
+    }
+
+    function renderResults(d) {
+      currentAqi = d.aqi;
+      safeData = d.safe;
+
+      document.getElementById("aqiNum").textContent = d.aqi;
+      document.getElementById("aqiNum").style.color = d.color;
+      document.getElementById("aqiLabel").textContent = d.label;
+      document.getElementById("aqiLabel").style.color = d.color;
+      document.getElementById("aqiCity").textContent = d.city;
+      document.getElementById("cityLabel").innerHTML = `<span class="ac-slash"><span></span><span></span><span></span></span>— ${d.city} Control Panel Dashboard`;
+      document.getElementById("aqiTimestamp").textContent = new Date().toLocaleTimeString();
+
+      const pct = Math.min((d.aqi / 500) * 100, 100);
+      document.getElementById("aqiBar").style.width = pct + "%";
+      document.getElementById("aqiBar").style.background = d.color;
+
+      const pm25 = d.pm25 || Math.round(d.aqi / 4.2);
+      document.getElementById("pm25").textContent = pm25 + " µg/m³";
+      document.getElementById("pm10").textContent = (d.pm10 || Math.round(pm25 * 1.6)) + " µg/m³";
+      document.getElementById("no2").textContent = (d.no2 || Math.round(pm25 * 0.4)) + " µg/m³";
+      document.getElementById("o3").textContent = (d.o3 || Math.round(pm25 * 0.3)) + " µg/m³";
+
+      if (d.mood) {
+        document.getElementById("moodImg").src = "data:image/png;base64," + d.mood;
+        document.getElementById("moodImg").classList.remove("hidden");
+      } else {
+        document.getElementById("moodImg").classList.add("hidden");
+      }
+
+      updateHealth();
+      const hs = d.safe;
+      document.getElementById("adultTime").textContent = fmt(hs.adult?.healthy || 0);
+      document.getElementById("childTime").textContent = fmt(hs.child?.healthy || 0);
+      document.getElementById("seniorTime").textContent = fmt(hs.senior?.healthy || 0);
+
+      // Prediction Section
+      const predBanner = document.getElementById("predApiKeyBanner");
+      const predBannerText = document.getElementById("predApiKeyBannerText");
+      if (d.pred_api_key_required) {
+        predBannerText.innerHTML = `<strong>API Key Required:</strong> Set <code>OPENWEATHER_API_KEY</code> in <code>.env</code> to enable live ML predictions.`;
+        predBanner.className = "api-key-banner";
+        predBanner.classList.remove("hidden");
+      } else if (d.pred_api_error) {
+        predBannerText.innerHTML = `<strong>API Error:</strong> ${d.pred_advice}`;
+        predBanner.className = "api-key-banner api-error";
+        predBanner.classList.remove("hidden");
+      } else {
+        predBanner.classList.add("hidden");
+      }
+
+      document.getElementById("predNum").textContent = d.pred_aqi !== null ? d.pred_aqi : "--";
+      document.getElementById("predNum").style.color = d.pred_color || "var(--text-secondary)";
+      document.getElementById("predLabel").textContent = d.pred_label || "Unavailable";
+      document.getElementById("predLabel").style.color = d.pred_color || "var(--text-secondary)";
+      if (d.pred_chart) {
+        document.getElementById("predChart").src = "data:image/png;base64," + d.pred_chart;
+        document.getElementById("predChart").classList.remove("hidden");
+      } else {
+        document.getElementById("predChart").classList.add("hidden");
+      }
+      document.getElementById("predAdvice").textContent = d.pred_advice || "No prediction advice available.";
+      const conf = d.pred_r2 !== undefined ? Math.round(d.pred_r2 * 100) : 0;
+      document.getElementById("confBar").style.width = conf + "%";
+      if (d.pred_api_key_required) {
+        document.getElementById("confLabel").textContent = "API key required";
+      } else if (d.pred_api_error) {
+        document.getElementById("confLabel").textContent = "API error";
+      } else {
+        document.getElementById("confLabel").textContent =
+          conf > 0 ? `R² = ${(conf / 100).toFixed(2)} (${conf}% confidence)` : "Historical data unavailable";
+      }
+
+      // Rain Section
+      const rainBanner = document.getElementById("rainApiKeyBanner");
+      const rainBannerText = document.getElementById("rainApiKeyBannerText");
+      if (d.rain_api_key_required) {
+        rainBannerText.innerHTML = `<strong>API Key Required:</strong> Set <code>OPENWEATHER_API_KEY</code> in <code>.env</code> to enable rain correlation.`;
+        rainBanner.className = "api-key-banner";
+        rainBanner.classList.remove("hidden");
+      } else if (d.rain_api_error) {
+        rainBannerText.innerHTML = `<strong>API Error:</strong> ${d.rain_insight}`;
+        rainBanner.className = "api-key-banner api-error";
+        rainBanner.classList.remove("hidden");
+      } else {
+        rainBanner.classList.add("hidden");
+      }
+
+      if (d.rain_chart) {
+        document.getElementById("rainChart").src = "data:image/png;base64," + d.rain_chart;
+        document.getElementById("rainChart").classList.remove("hidden");
+      } else {
+        document.getElementById("rainChart").classList.add("hidden");
+      }
+      document.getElementById("rainInsight").textContent = d.rain_insight || "OpenWeatherMap API key required for live rain correlation.";
+
+      // Spike Section
+      const spikeBanner = document.getElementById("spikeApiKeyBanner");
+      const spikeBannerText = document.getElementById("spikeApiKeyBannerText");
+      if (d.spike_api_key_required) {
+        spikeBannerText.innerHTML = `<strong>API Key Required:</strong> Set <code>OPENWEATHER_API_KEY</code> in <code>.env</code> to enable anomaly detection.`;
+        spikeBanner.className = "api-key-banner";
+        spikeBanner.classList.remove("hidden");
+      } else if (d.spike_api_error) {
+        spikeBannerText.innerHTML = `<strong>API Error:</strong> ${d.spike_alert}`;
+        spikeBanner.className = "api-key-banner api-error";
+        spikeBanner.classList.remove("hidden");
+      } else {
+        spikeBanner.classList.add("hidden");
+      }
+
+      if (d.spike_chart) {
+        document.getElementById("spikeChart").src = "data:image/png;base64," + d.spike_chart;
+        document.getElementById("spikeChart").classList.remove("hidden");
+      } else {
+        document.getElementById("spikeChart").classList.add("hidden");
+      }
+      document.getElementById("spikeAlert").textContent = d.spike_alert || "Spike data unavailable.";
+
+      const escapes = (d.escapes && d.escapes.length) ? d.escapes : [];
+      const grid = document.getElementById("escapeGrid");
+      if (escapes.length > 0) {
+        grid.innerHTML = escapes.map(e => `
+      <div class="escape-card" style="cursor:pointer;" onclick="selectCity('${e.city}')" title="Click to view ${e.city}">
+        <div class="esc-city">🏔️ ${e.city}</div>
+        <div class="esc-aqi" style="color:${e.color};">${e.aqi}</div>
+        <div style="font-size:0.8rem;color:${e.color};font-weight:700;font-family:'Rajdhani',sans-serif;">${e.label}</div>
+        <div class="esc-dist">📍 ~${e.distance_km || e.dist} km away</div>
+        <div style="margin-top:0.6rem;background:var(--track-bg);border-radius:99px;height:5px;">
+          <div style="width:${Math.min(e.aqi / 5, 100)}%;height:5px;border-radius:99px;background:${e.color};"></div>
+        </div>
+      </div>`).join("");
+      } else {
+        grid.innerHTML = `<div style="color:var(--text-secondary);padding:0.8rem;grid-column:1/-1;background:#141418;border:1px solid var(--border);border-radius:6px;">No cleaner cities currently found in live API data.</div>`;
+      }
+
+      document.getElementById("results").classList.remove("hidden");
+    }
+
+    function fmt(min) {
+      if (min === 0) return "Avoid";
+      if (min >= 60) return Math.floor(min / 60) + "h " + (min % 60) + "m";
+      return min + " min";
+    }
+
+    function updateHealth() {
+      if (!safeData || Object.keys(safeData).length === 0) return;
+      const age = document.getElementById("ageGroup").value;
+      const cond = document.getElementById("condition").value;
+      const mins = safeData[age]?.[cond] || 0;
+      const el = document.getElementById("safeTime");
+      el.textContent = fmt(mins);
+      const hr = document.getElementById("healthResult");
+      if (mins === 0) { el.style.color = "#EF4444"; hr.style.borderColor = "#EF4444"; }
+      else if (mins < 60) { el.style.color = "#F97316"; hr.style.borderColor = "#F97316"; }
+      else if (mins < 180) { el.style.color = "#EAB308"; hr.style.borderColor = "#EAB308"; }
+      else { el.style.color = "#22C55E"; hr.style.borderColor = "#22C55E"; }
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch("/history");
+        const rows = await res.json();
+        const tbody = document.getElementById("histBody");
+        tbody.innerHTML = rows.map(r => `
+      <tr style="cursor:pointer;" onclick="selectCity('${r.city}')" title="Click to view ${r.city}">
+        <td><b style="font-family:'Rajdhani',sans-serif;font-size:0.95rem;">${r.city}</b></td>
+        <td style="font-weight:700;font-family:'Rajdhani',sans-serif;font-size:1rem;">${r.aqi}</td>
+        <td><span class="badge" style="background:#141418;color:var(--text-primary);border:1px solid var(--border);">${r.label}</span></td>
+        <td style="color:var(--text-secondary);font-size:0.85rem;">${r.time.replace("T", " ")}</td>
+      </tr>`).join("");
+      } catch (e) { }
+    }
+  </script>
+  <button id="viewToggle" type="button" aria-label="Switch view">📱 Mobile view</button>
+  <script src="{{ url_for('static', filename='js/view-toggle.js') }}"></script>
+</body>
+
+</html>

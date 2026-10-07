@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AeroSense — Air Quality Control Panel Login</title>
+<link rel="stylesheet" href="/static/theme.css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/view-toggle.css') }}">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-box">
+      <div class="logo">Aero<span>Sense</span></div>
+      <p class="subtitle">Smart Air Quality Control Panel</p>
+
+      {% if error %}
+      <div class="error-msg">⚠️ {{ error }}</div>
+      {% endif %}
+
+      <form method="POST" action="/login">
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required autofocus placeholder="Enter your username"/>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required placeholder="Enter your password"/>
+        </div>
+        <button type="submit" class="btn" style="width:100%;">System Log In</button>
+      </form>
+
+      <div class="switch-link">
+        Don't have an account? <a href="/signup">Create Account</a>
+      </div>
+    </div>
+  </div>
+  <button id="viewToggle" type="button" aria-label="Switch view">📱 Mobile view</button>
+  <script src="{{ url_for('static', filename='js/view-toggle.js') }}"></script>
+</body>
+</html>

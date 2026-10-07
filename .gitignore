@@ -1,0 +1,26 @@
+# Environment variables
+.env
+*.env
+
+# Python cache & virtual environment
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# SQLite Database
+*.db
+*.sqlite3
+
+# Temporary & backup folders
+backup_before_toggle/
+\{templates,static/
+"{templates,static"
+
+# Operating System & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
